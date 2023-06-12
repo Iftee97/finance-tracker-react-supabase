@@ -1,5 +1,5 @@
-export default function TransactionList() {
+export default function TransactionList({ transactions }) {
   return (
-    <div>TransactionList</div>
+    <div>TransactionList: {transactions.length}</div>
   )
 }
