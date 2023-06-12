@@ -22,6 +22,7 @@ export default function Home() {
       .order('created_at', { ascending: false }) // newest first
 
     if (data?.length > 0) {
+      console.log('transactions >>>>>>>>>>>>', data)
       setTransactions(data)
     }
     if (error) {
@@ -29,11 +30,11 @@ export default function Home() {
     }
   }
 
-  // subscribe to real-time insert changes in the transactions table
-  supabase.channel('custom-insert-channel')
+  // subscribe to all (INSERT, UPDATE, DELETE) real-time changes in the transactions table
+  supabase.channel('custom-all-channel')
     .on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'transactions' },
+      { event: '*', schema: 'public', table: 'transactions' },
       (payload) => {
         console.log('Change received! >>>>>>>>>>>>', payload)
         setTransactions((prev) => [...prev, payload.new])
