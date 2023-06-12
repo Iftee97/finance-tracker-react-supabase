@@ -9,35 +9,41 @@ export default function Home() {
   const { user } = useContext(AuthContext)
 
   const [transactions, setTransactions] = useState([])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     getTransactions()
   }, [])
 
   async function getTransactions() {
-    let { data, error } = await supabase
-      .from('transactions') // from the transactions table
-      .select('*') // select all columns
-      .eq('user_id', user.id) // only get transactions for the logged in user
-      .order('created_at', { ascending: false }) // newest first
+    try {
+      setLoading(true)
+      let { data, error } = await supabase
+        .from('transactions') // from the transactions table
+        .select('*') // select all columns
+        .eq('user_id', user.id) // only get transactions for the logged in user
+        .order('created_at', { ascending: false }) // newest first
 
-    if (data?.length > 0) {
-      console.log('transactions >>>>>>>>>>>>', data)
-      setTransactions(data)
-    }
-    if (error) {
-      setError(error.message)
+      if (data?.length > 0) {
+        setTransactions(data)
+      }
+      if (error) {
+        setError(error.message)
+      }
+      setLoading(false)
+    } catch (error) {
+      console.log(error)
     }
   }
 
-  // subscribe to all (INSERT, UPDATE, DELETE) real-time changes in the transactions table
-  supabase.channel('custom-all-channel')
+  // subscribe to INSERT real-time changes in the transactions table
+  supabase.channel('custom-insert-channel')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'transactions' },
+      { event: 'INSERT', schema: 'public', table: 'transactions' },
       (payload) => {
-        console.log('Change received! >>>>>>>>>>>>', payload)
-        setTransactions((prev) => [...prev, payload.new])
+        console.log('INSERT Change payload: >>>>>>>>>>>>', payload)
+        setTransactions((prev) => [payload.new, ...prev])
       }
     )
     .subscribe()
@@ -45,10 +51,17 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <div className={styles.content}>
-        {transactions?.length ? (
-          <TransactionList transactions={transactions} />
+        {loading ? (
+          <p>loading...</p>
         ) : (
-          <p>no transactions yet</p>
+          transactions?.length > 0 ? (
+            <TransactionList
+              transactions={transactions}
+              setTransactions={setTransactions}
+            />
+          ) : (
+            <p>no transactions yet</p>
+          )
         )}
       </div>
       <div className={styles.sidebar}>
